@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yangon Weather</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e90ff, #70a1ff);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .temperature {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 1rem 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .status {
+            font-size: 1.5em;
+            margin: 1rem 0;
+            text-transform: capitalize;
+            animation: fadeInUp 1s ease;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        /* Cloud Animations */
+        .cloud {
+            width: 100px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            position: absolute;
+            animation: moveCloud linear infinite;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cloud::before,
+        .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+        }
+
+        .cloud::before {
+            width: 50px;
+            height: 50px;
+            top: -20px;
+            left: 15px;
+        }
+
+        .cloud::after {
+            width: 30px;
+            height: 30px;
+            top: -10px;
+            right: 15px;
+        }
+
+        /* Rain Animation */
+        .rain {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(transparent, rgba(255, 255, 255, 0.8));
+            animation: rainDrop linear infinite;
+        }
+
+        /* Keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes moveCloud {
+            from {
+                transform: translateX(-150px);
+            }
+            to {
+                transform: translateX(calc(100vw + 150px));
+            }
+        }
+
+        @keyframes rainDrop {
+            from {
+                transform: translateY(-120vh);
+            }
+            to {
+                transform: translateY(120vh);
+            }
+        }
+
+        .loading {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .weather-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="weather-container" id="weatherContainer"></div>
+    <div class="weather-card">
+        <h1>Weather in Yangon</h1>
+        <div class="temperature" id="temperature">
+            <div class="loading"></div>
+        </div>
+        <div class="status" id="status">Fetching data...</div>
+    </div>
+
+    <script>
+        function createCloud() {
+            const cloud = document.createElement('div');
+            cloud.className = 'cloud';
+            cloud.style.top = `${Math.random() * 50}%`;
+            cloud.style.animationDuration = `${Math.random() * 20 + 30}s`;
+            cloud.style.opacity = Math.random() * 0.4 + 0.6;
+            cloud.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+            return cloud;
+        }
+
+        function createRainDrop() {
+            const rain = document.createElement('div');
+            rain.className = 'rain';
+            rain.style.left = `${Math.random() * 100}%`;
+            rain.style.animationDuration = `${Math.random() * 0.5 + 0.5}s`;
+            rain.style.animationDelay = `${Math.random() * 2}s`;
+            return rain;
+        }
+
+        function setWeatherAnimation(weatherMain) {
+            const container = document.getElementById('weatherContainer');
+            container.innerHTML = '';
+
+            if (weatherMain === 'rain') {
+                document.body.style.background = 'linear-gradient(135deg, #1c3f80, #2c5282)';
+                // Add rain drops
+                for (let i = 0; i < 100; i++) {
+                    container.appendChild(createRainDrop());
+                }
+                // Add some dark clouds
+                for (let i = 0; i < 5; i++) {
+                    const cloud = createCloud();
+                    cloud.style.background = 'rgba(100, 100, 100, 0.8)';
+                    container.appendChild(cloud);
+                }
+            } else if (weatherMain === 'clouds') {
+                document.body.style.background = 'linear-gradient(135deg, #4b6cb7, #182848)';
+                // Add multiple clouds
+                for (let i = 0; i < 8; i++) {
+                    container.appendChild(createCloud());
+                }
+            } else if (weatherMain === 'clear') {
+                document.body.style.background = 'linear-gradient(135deg, #00b4db, #0083b0)';
+                // Add few light clouds
+                for (let i = 0; i < 3; i++) {
+                    const cloud = createCloud();
+                    cloud.style.opacity = '0.3';
+                    container.appendChild(cloud);
+                }
+            } else {
+                document.body.style.background = 'linear-gradient(135deg, #1e90ff, #70a1ff)';
+            }
+        }
+
+        async function getWeather() {
+            const apiKey = "ec0c2dd3db228fd90a864e7e4afc99be";
+            const city = "Yangon";
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Weather data unavailable");
+
+                const data = await response.json();
+                const temp = Math.round(data.main.temp);
+                const status = data.weather[0].description;
+                const weatherMain = data.weather[0].main.toLowerCase();
+
+                document.getElementById("temperature").innerHTML = `${temp}°C`;
+                document.getElementById("status").innerText = status;
+
+                setWeatherAnimation(weatherMain);
+            } catch (error) {
+                console.error("Error fetching weather data:", error);
+                document.getElementById("temperature").innerHTML = "--°C";
+                document.getElementById("status").innerText = "Unable to fetch weather data";
+            }
+        }
+
+        window.onload = getWeather;
+    </script>
+</body>
+</html>
