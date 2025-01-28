@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yangon Weather</title>
+    <title>Weather App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -35,25 +36,63 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
+        .search-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .search-input {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 200px;
+            backdrop-filter: blur(5px);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .location-text {
+            font-size: 1.2em;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
         .temperature {
             font-size: 4em;
             font-weight: bold;
             margin: 1rem 0;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-            animation: fadeInUp 0.8s ease;
         }
 
         .status {
             font-size: 1.5em;
             margin: 1rem 0;
             text-transform: capitalize;
-            animation: fadeInUp 1s ease;
-        }
-
-        h1 {
-            font-size: 2em;
-            margin-bottom: 1.5rem;
-            animation: fadeInUp 0.6s ease;
         }
 
         /* Cloud Animations */
@@ -98,34 +137,25 @@
             animation: rainDrop linear infinite;
         }
 
-        /* Keyframes */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         @keyframes moveCloud {
-            from {
-                transform: translateX(-150px);
-            }
-            to {
-                transform: translateX(calc(100vw + 150px));
-            }
+            from { transform: translateX(-150px); }
+            to { transform: translateX(calc(100vw + 150px)); }
         }
 
         @keyframes rainDrop {
-            from {
-                transform: translateY(-120vh);
-            }
-            to {
-                transform: translateY(120vh);
-            }
+            from { transform: translateY(-120vh); }
+            to { transform: translateY(120vh); }
+        }
+
+        .weather-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
         }
 
         .loading {
@@ -142,23 +172,17 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .weather-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 0;
-        }
     </style>
 </head>
 <body>
     <div class="weather-container" id="weatherContainer"></div>
     <div class="weather-card">
-        <h1>Weather in Yangon</h1>
+        <div class="search-container">
+            <input type="text" class="search-input" id="cityInput" placeholder="Enter city name" value="Yangon">
+            <button class="btn" onclick="searchWeather()">Search</button>
+            <button class="btn" onclick="getLocationWeather()">📍</button>
+        </div>
+        <div class="location-text" id="location">Loading location...</div>
         <div class="temperature" id="temperature">
             <div class="loading"></div>
         </div>
@@ -166,6 +190,8 @@
     </div>
 
     <script>
+        const apiKey = "ec0c2dd3db228fd90a864e7e4afc99be";
+
         function createCloud() {
             const cloud = document.createElement('div');
             cloud.className = 'cloud';
@@ -191,11 +217,9 @@
 
             if (weatherMain === 'rain') {
                 document.body.style.background = 'linear-gradient(135deg, #1c3f80, #2c5282)';
-                // Add rain drops
                 for (let i = 0; i < 100; i++) {
                     container.appendChild(createRainDrop());
                 }
-                // Add some dark clouds
                 for (let i = 0; i < 5; i++) {
                     const cloud = createCloud();
                     cloud.style.background = 'rgba(100, 100, 100, 0.8)';
@@ -203,13 +227,11 @@
                 }
             } else if (weatherMain === 'clouds') {
                 document.body.style.background = 'linear-gradient(135deg, #4b6cb7, #182848)';
-                // Add multiple clouds
                 for (let i = 0; i < 8; i++) {
                     container.appendChild(createCloud());
                 }
             } else if (weatherMain === 'clear') {
                 document.body.style.background = 'linear-gradient(135deg, #00b4db, #0083b0)';
-                // Add few light clouds
                 for (let i = 0; i < 3; i++) {
                     const cloud = createCloud();
                     cloud.style.opacity = '0.3';
@@ -220,32 +242,53 @@
             }
         }
 
-        async function getWeather() {
-            const apiKey = "ec0c2dd3db228fd90a864e7e4afc99be";
-            const city = "Yangon";
-            const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`;
-
+        async function getWeatherData(url) {
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error("Weather data unavailable");
 
                 const data = await response.json();
-                const temp = Math.round(data.main.temp);
-                const status = data.weather[0].description;
-                const weatherMain = data.weather[0].main.toLowerCase();
-
-                document.getElementById("temperature").innerHTML = `${temp}°C`;
-                document.getElementById("status").innerText = status;
-
-                setWeatherAnimation(weatherMain);
+                document.getElementById("location").innerText = `Weather in ${data.name}, ${data.sys.country}`;
+                document.getElementById("temperature").innerHTML = `${Math.round(data.main.temp)}°C`;
+                document.getElementById("status").innerText = data.weather[0].description;
+                setWeatherAnimation(data.weather[0].main.toLowerCase());
             } catch (error) {
                 console.error("Error fetching weather data:", error);
                 document.getElementById("temperature").innerHTML = "--°C";
                 document.getElementById("status").innerText = "Unable to fetch weather data";
+                document.getElementById("location").innerText = "Location not found";
             }
         }
 
-        window.onload = getWeather;
+        function searchWeather() {
+            const city = document.getElementById("cityInput").value || "Yangon";
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`;
+            getWeatherData(url);
+        }
+
+        function getLocationWeather() {
+            if (navigator.geolocation) {
+                document.getElementById("status").innerText = "Fetching location...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}&units=metric&appid=${apiKey}`;
+                        getWeatherData(url);
+                    },
+                    (error) => {
+                        console.error("Error getting location:", error);
+                        document.getElementById("status").innerText = "Unable to get location. Using default city.";
+                        searchWeather();
+                    }
+                );
+            } else {
+                document.getElementById("status").innerText = "Geolocation is not supported by this browser.";
+                searchWeather();
+            }
+        }
+
+        window.onload = () => {
+            getLocationWeather();
+        };
     </script>
 </body>
 </html>
